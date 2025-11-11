@@ -70,6 +70,7 @@ class CreateCustomer(graphene.Mutation):
             )
 
         customer = Customer.objects.create(name=name, email=email, phone=phone or "")
+        customer.save()
 
         return CreateCustomer(
             customer=customer, message="Customer created successfully"
@@ -104,6 +105,7 @@ class BulkCreateCustomers(graphene.Mutation):
                         email=data.email,
                         phone=data.phone or "",
                     )
+                    customer.save()
                     created_customers.append(customer)
 
                 except Exception as e:
@@ -132,6 +134,8 @@ class CreateProduct(graphene.Mutation):
         product = Product.objects.create(
             name=input.name, price=price, stock=input.stock or 0
         )
+        product.save()
+
         return CreateProduct(product=product, message="Product created successfully")
 
 
@@ -175,6 +179,7 @@ class CreateOrder(graphene.Mutation):
             total_amount=total_amount,
             order_date=order_date or datetime.datetime.now(),
         )
+        order.save()
         order.products.set(products)
 
         return CreateOrder(order=order, message="Order created successfully!")
