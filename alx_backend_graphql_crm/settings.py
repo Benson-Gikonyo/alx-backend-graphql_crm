@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # local
     "graphene_django",
     "crm",
+    "django_filters",
 ]
 
 MIDDLEWARE = [

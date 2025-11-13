@@ -5,6 +5,9 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from .models import Customer, Order, Product
 from decimal import Decimal as D
+from graphene_django.filter import DjangoFilterConnectionField
+from .models import Customer, Product, Order
+from .filters import CustomerFilter, ProductFilter, OrderFilter
 import datetime
 
 
@@ -31,18 +34,24 @@ class OrderInput(graphene.InputObjectType):
 class CustomerType(DjangoObjectType):
     class Meta:
         model = Customer
-        fields = ("id", "name", "email", "phone")
+        interfaces = (graphene.relay.Node,)
+        filterset_class = CustomerFilter
+        fields = ("id", "name", "email", "phone", "created_at")
 
 
 class ProductType(DjangoObjectType):
     class Meta:
         model = Product
+        interfaces = (graphene.relay.Node,)
+        filterset_class = ProductFilter
         fields = ("id", "name", "price", "stock")
 
 
 class OrderType(DjangoObjectType):
     class Meta:
         model = Order
+        interfaces = (graphene.relay.Node,)
+        filterset_class = OrderFilter
         fields = ("id", "customer", "products", "total_amount", "order_date")
 
 
@@ -187,18 +196,38 @@ class CreateOrder(graphene.Mutation):
 
 # Schema definition
 class Query(graphene.ObjectType):
-    all_customers = graphene.List(CustomerType)
-    all_products = graphene.List(ProductType)
-    all_orders = graphene.List(OrderType)
+    customer = graphene.relay.Node.Field(CustomerType)
+    product = graphene.relay.Node.Field(ProductType)
+    order = graphene.relay.Node.Field(OrderType)
 
-    def resolve_all_customers(root, info):
-        return Customer.objects.all()
+    all_customers = DjangoFilterConnectionField(
+        CustomerType, filterset_class=CustomerFilter
+    )
+    all_products = DjangoFilterConnectionField(
+        ProductType, filterset_class=ProductFilter
+    )
+    all_orders = DjangoFilterConnectionField(OrderType, filterset_class=OrderFilter)
 
-    def resolve_all_products(root, info):
-        return Product.objects.all()
+    def resolve_all_customers(self, info, order_by=None, **kwargs):
+        qs = Customer.objects.all()
+        if order_by:
+            qs = qs.order_by(order_by)
 
-    def resolve_all_orders(root, info):
-        return Order.objects.all()
+        return qs
+
+    def resolve_all_products(self, info, order_by=None, **kwargs):
+        qs = Product.objects.all()
+        if order_by:
+            qs = qs.order_by(order_by)
+
+        return qs
+
+    def resolve_all_orders(self, info, order_by=None, **kwargs):
+        qs = Order.objects.all()
+        if order_by:
+            qs = qs.order_by(order_by)
+
+        return qs
 
 
 class Mutation(graphene.ObjectType):
